@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { X, Upload, FileText, Database, Trash2, RefreshCw, Loader2, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
+import { X, Upload, Database, Trash2, Loader2, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AxiosError } from "axios";
 import { getOrCreateSessionId } from "@/lib/sessionUtils";
-import { getSessionStatus, wipeSession, ingestText, ingestFile } from "@/lib/api";
+import { getSessionStatus, wipeSession, ingestFile } from "@/lib/api";
 
 interface DataManagementModalProps {
     isOpen: boolean;
@@ -13,10 +13,9 @@ interface DataManagementModalProps {
 }
 
 export default function DataManagementModal({ isOpen, onClose }: DataManagementModalProps) {
-    const [activeTab, setActiveTab] = useState<"sync" | "text" | "file">("sync");
+    const [activeTab, setActiveTab] = useState<"file">("file");
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
-    const [rawText, setRawText] = useState("");
     const [isEmpty, setIsEmpty] = useState(true);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -38,19 +37,7 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
         }
     };
 
-    const handleSync = async () => {
-        // Sync feature disabled or requires backend implementation
-        setLoading(true);
-        resetStatus();
-        try {
-            // Placeholder: maybe re-map to ingest directory or warn
-            setStatus({ type: "error", message: "Directory sync not yet implemented in Python backend" });
-        } catch (err: unknown) {
-            setStatus({ type: "error", message: "Directory sync failed" });
-        } finally {
-            setLoading(false);
-        }
-    };
+
 
     const handleSampleData = async () => {
         // Placeholder
@@ -74,23 +61,7 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
         }
     };
 
-    const handleTextIngest = async () => {
-        if (!rawText.trim()) return;
-        setLoading(true);
-        resetStatus();
-        try {
-            const sessionId = getOrCreateSessionId();
-            const data = await ingestText(rawText, sessionId);
-            setStatus({ type: "success", message: data.message });
-            setRawText("");
-            await checkSessionStatus();
-        } catch (err: unknown) {
-            const errorMessage = err instanceof AxiosError ? err.response?.data?.detail : "Text ingestion failed";
-            setStatus({ type: "error", message: errorMessage });
-        } finally {
-            setLoading(false);
-        }
-    };
+
 
     const handleFileIngest = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -166,13 +137,11 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
                     {/* Tabs */}
                     <div className="flex border-b border-white/5 bg-white/2">
                         {[
-                            { id: "sync", label: "Directory Sync", icon: RefreshCw },
-                            { id: "text", label: "Text Input", icon: FileText },
                             { id: "file", label: "File Upload", icon: Upload },
                         ].map((tab) => (
                             <button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id as "sync" | "text" | "file")}
+                                onClick={() => setActiveTab(tab.id as "file")}
                                 className={`flex-1 py-4 flex items-center justify-center space-x-2 text-sm font-medium transition-all ${activeTab === tab.id ? "text-indigo-400 border-b-2 border-indigo-500 bg-indigo-500/5" : "text-gray-500 hover:text-gray-300"
                                     }`}
                             >
@@ -185,56 +154,9 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
                     {/* Content */}
                     <div className="p-8 min-h-[300px] flex flex-col">
                         <AnimatePresence mode="wait">
-                            {activeTab === "sync" && (
-                                <motion.div
-                                    key="sync"
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 10 }}
-                                    className="space-y-6"
-                                >
-                                    <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-2xl p-6">
-                                        <h3 className="text-lg font-medium mb-2">Sync Session Directory</h3>
-                                        <p className="text-sm text-gray-400 mb-6">
-                                            Process all CVs (.txt, .pdf) in your isolated session directory. Only new or changed files will be processed.
-                                        </p>
-                                        <button
-                                            onClick={handleSync}
-                                            disabled={loading}
-                                            className="w-full py-4 rounded-xl bg-indigo-500 hover:bg-indigo-600 font-semibold flex items-center justify-center space-x-2 transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50"
-                                        >
-                                            {loading ? <Loader2 className="animate-spin" size={20} /> : <RefreshCw size={20} />}
-                                            <span>{loading ? "Syncing..." : "Start Synchronize"}</span>
-                                        </button>
-                                    </div>
-                                </motion.div>
-                            )}
 
-                            {activeTab === "text" && (
-                                <motion.div
-                                    key="text"
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 10 }}
-                                    className="space-y-4 flex-1 flex flex-col"
-                                >
-                                    <p className="text-sm text-gray-400">Paste the raw text content of a CV below to ingest it into your session.</p>
-                                    <textarea
-                                        value={rawText}
-                                        onChange={(e) => setRawText(e.target.value)}
-                                        placeholder="Enter candidate details, experience, skills..."
-                                        className="flex-1 min-h-[200px] w-full bg-white/5 border border-white/10 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none"
-                                    />
-                                    <button
-                                        onClick={handleTextIngest}
-                                        disabled={loading || !rawText.trim()}
-                                        className="w-full py-4 rounded-xl bg-indigo-500 hover:bg-indigo-600 font-semibold flex items-center justify-center space-x-2 transition-all disabled:opacity-50"
-                                    >
-                                        {loading ? <Loader2 className="animate-spin" size={20} /> : <Database size={20} />}
-                                        <span>{loading ? "Ingesting..." : "Ingest Text"}</span>
-                                    </button>
-                                </motion.div>
-                            )}
+
+
 
                             {activeTab === "file" && (
                                 <motion.div

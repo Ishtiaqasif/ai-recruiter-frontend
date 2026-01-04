@@ -3,14 +3,20 @@
 import { useState, useEffect } from "react";
 import ChatContainer from "@/components/ChatContainer";
 import DataManagementModal from "@/components/DataManagementModal";
-import SettingsModal, { Theme } from "@/components/SettingsModal";
-import { Database, Settings } from "lucide-react";
+import { Database, Sun, Moon, Crown } from "lucide-react";
 import { getOrCreateSessionId } from "@/lib/sessionUtils";
 import { wipeSession } from "@/lib/api";
 
+export type Theme = "dark" | "light" | "premium";
+
+const themes: { id: Theme; label: string; icon: any; color: string }[] = [
+  { id: "dark", label: "Midnight", icon: Moon, color: "text-indigo-400" },
+  { id: "light", label: "Astral", icon: Sun, color: "text-blue-500" },
+  { id: "premium", label: "Royal", icon: Crown, color: "text-emerald-400" },
+];
+
 export default function Home() {
   const [isDataModalOpen, setIsDataModalOpen] = useState(false);
-  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [theme, setTheme] = useState<Theme>("dark");
 
   const themeConfig = {
@@ -74,14 +80,31 @@ export default function Home() {
 
       {/* Top Action Buttons */}
       <div className="absolute top-6 right-6 z-20 flex items-center space-x-3">
-        <button
-          onClick={() => setIsSettingsModalOpen(true)}
-          className={`p-3 rounded-2xl transition-all border flex items-center space-x-2 group ${theme === 'light' ? 'bg-white/80 border-slate-200 text-slate-600 hover:bg-white' : 'glass-card border-white/5 text-gray-400 hover:bg-white/10'
-            }`}
-        >
-          <Settings className="group-hover:rotate-90 transition-transform" size={20} />
-          <span className="text-xs font-semibold uppercase tracking-tighter hidden sm:inline">Settings</span>
-        </button>
+        {/* Inline Theme Switcher */}
+        <div className={`p-1.5 rounded-2xl border flex items-center space-x-1 transition-all ${theme === 'light' ? 'bg-white/80 border-slate-200' : 'glass-card border-white/5'}`}>
+          {themes.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTheme(t.id)}
+              className={`p-2 rounded-xl transition-all flex items-center space-x-2 group ${theme === t.id
+                ? (theme === 'light' ? 'bg-slate-100 shadow-sm' : 'bg-white/10 shadow-lg shadow-black/20')
+                : 'hover:bg-white/5'
+                }`}
+              title={t.label}
+            >
+              <t.icon
+                size={18}
+                className={`transition-transform duration-300 ${theme === t.id ? `scale-110 ${t.color}` : 'text-gray-500 opacity-60'}`}
+              />
+              {theme === t.id && (
+                <span className={`text-[10px] font-bold uppercase tracking-wider animate-in fade-in slide-in-from-left-2 duration-300 ${theme === 'light' ? 'text-slate-700' : 'text-white'}`}>
+                  {t.label}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
         <button
           onClick={() => setIsDataModalOpen(true)}
           className={`p-3 rounded-2xl transition-all border flex items-center space-x-2 group ${theme === 'light' ? 'bg-white/80 border-slate-200 text-slate-600 hover:bg-white' : 'glass-card border-white/5 text-gray-400 hover:bg-white/10'
@@ -116,13 +139,6 @@ export default function Home() {
       <DataManagementModal
         isOpen={isDataModalOpen}
         onClose={() => setIsDataModalOpen(false)}
-      />
-
-      <SettingsModal
-        isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
-        currentTheme={theme}
-        onThemeChange={setTheme}
       />
     </main>
   );
