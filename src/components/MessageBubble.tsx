@@ -9,7 +9,7 @@ function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
-import { Theme } from "./SettingsModal";
+import { Theme } from "@/app/page";
 
 interface Message {
     role: "user" | "ai";

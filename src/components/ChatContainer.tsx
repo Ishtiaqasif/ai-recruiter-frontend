@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { chat } from "@/lib/api";
 import { getOrCreateSessionId } from "@/lib/sessionUtils";
 
-import { Theme } from "./SettingsModal";
+import { Theme } from "@/app/page";
 
 interface Message {
     role: "user" | "ai";
