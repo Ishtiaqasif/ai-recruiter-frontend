@@ -6,8 +6,8 @@ const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 
 const apiClient = axios.create({
     baseURL: BASE_URL,
+    timeout: 60000, // 60 seconds
     headers: {
-        'Content-Type': 'application/json',
         'X-API-Key': API_KEY,
     },
 });
@@ -76,11 +76,7 @@ export const ingestFile = async (
     formData.append('file', file);
     formData.append('sessionId', sessionId);
 
-    const response = await apiClient.post<StandardResponse>('/ingest', formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        },
-    });
+    const response = await apiClient.post<StandardResponse>('/ingest', formData);
     return response.data;
 };
 

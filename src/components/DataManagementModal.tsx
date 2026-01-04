@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AxiosError } from "axios";
 import { getOrCreateSessionId } from "@/lib/sessionUtils";
 import { getSessionStatus, wipeSession, ingestFile } from "@/lib/api";
+import { ingestZipAction } from "@/app/actions";
 
 interface DataManagementModalProps {
     isOpen: boolean;
@@ -74,12 +75,22 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
         formData.append("sessionId", getOrCreateSessionId());
 
         try {
-            const data = await ingestFile(file, getOrCreateSessionId());
-            setStatus({ type: "success", message: data.message });
+            const sessionId = getOrCreateSessionId();
+
+            if (file.name.toLowerCase().endsWith(".zip")) {
+                const res = await ingestZipAction(formData);
+                setStatus({ type: "success", message: res.message });
+            } else {
+                const data = await ingestFile(file, sessionId);
+                setStatus({ type: "success", message: data.message });
+            }
+
             if (fileInputRef.current) fileInputRef.current.value = "";
             await checkSessionStatus();
         } catch (err: unknown) {
-            const errorMessage = err instanceof AxiosError ? err.response?.data?.detail : "File ingestion failed";
+            const errorMessage = err instanceof AxiosError
+                ? err.response?.data?.detail
+                : (err instanceof Error ? err.message : "File ingestion failed");
             setStatus({ type: "error", message: errorMessage });
         } finally {
             setLoading(false);
