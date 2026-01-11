@@ -16,9 +16,10 @@ interface Message {
 
 interface ChatContainerProps {
     theme: Theme;
+    isUsingSampleData: boolean;
 }
 
-export default function ChatContainer({ theme }: ChatContainerProps) {
+export default function ChatContainer({ theme, isUsingSampleData }: ChatContainerProps) {
     const [messages, setMessages] = useState<Message[]>([
         {
             role: "ai",
@@ -78,9 +79,15 @@ export default function ChatContainer({ theme }: ChatContainerProps) {
                     </div>
                     <div>
                         <h2 className="font-semibold text-lg">AI Recruiter Assistant</h2>
-                        <div className="flex items-center text-xs text-emerald-400">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse" />
-                            Pulse Active
+                        <div className="flex items-center space-x-3">
+                            <div className="flex items-center text-xs text-emerald-400">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse" />
+                                Pulse Active
+                            </div>
+                            <div className="w-px h-3 bg-white/10" />
+                            <div className={`flex items-center text-[10px] font-bold uppercase tracking-wider ${isUsingSampleData ? 'text-amber-400/80' : 'text-indigo-400'}`}>
+                                <span>Source: {isUsingSampleData ? 'Sample Data' : 'Personal Data'}</span>
+                            </div>
                         </div>
                     </div>
                 </div>

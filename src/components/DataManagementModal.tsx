@@ -11,39 +11,17 @@ import { ingestZipAction } from "@/app/actions";
 interface DataManagementModalProps {
     isOpen: boolean;
     onClose: () => void;
+    isEmpty: boolean;
+    onStatusChange: () => void;
 }
 
-export default function DataManagementModal({ isOpen, onClose }: DataManagementModalProps) {
+export default function DataManagementModal({ isOpen, onClose, isEmpty, onStatusChange }: DataManagementModalProps) {
     const [activeTab, setActiveTab] = useState<"file">("file");
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
-    const [isEmpty, setIsEmpty] = useState(true);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const resetStatus = () => setStatus(null);
-
-    useEffect(() => {
-        if (isOpen) {
-            checkSessionStatus();
-        }
-    }, [isOpen]);
-
-    const checkSessionStatus = async () => {
-        try {
-            const sessionId = getOrCreateSessionId();
-            const data = await getSessionStatus(sessionId);
-            setIsEmpty(data.isEmpty);
-        } catch (err) {
-            console.error("Failed to check session status:", err);
-        }
-    };
-
-
-
-    const handleSampleData = async () => {
-        // Placeholder
-        setStatus({ type: "error", message: "Sample data not yet implemented" });
-    };
 
     const handleWipe = async () => {
         if (!confirm("Are you sure you want to wipe all your session data? This cannot be undone.")) return;
@@ -53,7 +31,7 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
             const sessionId = getOrCreateSessionId();
             const data = await wipeSession(sessionId);
             setStatus({ type: "success", message: data.message });
-            await checkSessionStatus();
+            onStatusChange();
         } catch (err: unknown) {
             const errorMessage = err instanceof AxiosError ? err.response?.data?.detail : "Database wipe failed";
             setStatus({ type: "error", message: errorMessage });
@@ -61,8 +39,6 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
             setLoading(false);
         }
     };
-
-
 
     const handleFileIngest = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -86,7 +62,7 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
             }
 
             if (fileInputRef.current) fileInputRef.current.value = "";
-            await checkSessionStatus();
+            onStatusChange();
         } catch (err: unknown) {
             const errorMessage = err instanceof AxiosError
                 ? err.response?.data?.detail
@@ -125,25 +101,28 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
                     </div>
 
                     {/* Session Status Banner */}
-                    {isEmpty && (
-                        <div className="p-4 bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
+                    <div className={`p-4 border-b flex items-center justify-between ${isEmpty ? 'bg-amber-500/10 border-amber-500/20' : 'bg-emerald-500/10 border-emerald-500/20'}`}>
+                        <div className="flex items-center space-x-3">
+                            {isEmpty ? (
                                 <AlertCircle className="text-amber-400" size={20} />
-                                <div>
-                                    <p className="text-sm font-medium text-amber-300">Session Directory Empty</p>
-                                    <p className="text-xs text-amber-400/70">No candidate data found in your session.</p>
-                                </div>
+                            ) : (
+                                <CheckCircle2 className="text-emerald-400" size={20} />
+                            )}
+                            <div>
+                                <p className={`text-sm font-medium ${isEmpty ? 'text-amber-300' : 'text-emerald-300'}`}>
+                                    {isEmpty ? 'Global Sample Dataset' : 'Active Session Dataset'}
+                                </p>
+                                <p className={`text-xs ${isEmpty ? 'text-amber-400/70' : 'text-emerald-400/70'}`}>
+                                    {isEmpty
+                                        ? 'No session data found. Quering against sample dataset.'
+                                        : 'Currently querying your ingested candidate data.'}
+                                </p>
                             </div>
-                            <button
-                                onClick={handleSampleData}
-                                disabled={loading}
-                                className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-black font-semibold text-sm transition-all disabled:opacity-50 flex items-center space-x-2"
-                            >
-                                <Sparkles size={16} />
-                                <span>Load Sample Data</span>
-                            </button>
                         </div>
-                    )}
+                        <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${isEmpty ? 'text-amber-400 border-amber-400/30' : 'text-emerald-400 border-emerald-400/30'}`}>
+                            {isEmpty ? 'Sample' : 'Personal'}
+                        </div>
+                    </div>
 
                     {/* Tabs */}
                     <div className="flex border-b border-white/5 bg-white/2">
@@ -165,10 +144,6 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
                     {/* Content */}
                     <div className="p-8 min-h-[300px] flex flex-col">
                         <AnimatePresence mode="wait">
-
-
-
-
                             {activeTab === "file" && (
                                 <motion.div
                                     key="file"
@@ -225,11 +200,11 @@ export default function DataManagementModal({ isOpen, onClose }: DataManagementM
                     <div className="p-6 border-t border-white/5 bg-white/2 flex items-center justify-between">
                         <button
                             onClick={handleWipe}
-                            disabled={loading}
-                            className="px-4 py-2 rounded-lg text-red-400 hover:bg-red-500/10 flex items-center space-x-2 transition-colors disabled:opacity-50"
+                            disabled={loading || isEmpty}
+                            className={`px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors disabled:opacity-50 ${isEmpty ? 'text-gray-600 cursor-not-allowed' : 'text-red-400 hover:bg-red-500/10'}`}
                         >
                             <Trash2 size={16} />
-                            <span className="text-sm font-medium">Wipe Session Data</span>
+                            <span className="text-sm font-medium">Clear My Dataset</span>
                         </button>
                         <p className="text-[10px] text-gray-500 uppercase tracking-widest">Session-Isolated v2.0</p>
                     </div>
