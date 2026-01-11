@@ -18,6 +18,7 @@ const themes: { id: Theme; label: string; icon: any; color: string }[] = [
 export default function Home() {
   const [isDataModalOpen, setIsDataModalOpen] = useState(false);
   const [theme, setTheme] = useState<Theme>("dark");
+  const [isEmpty, setIsEmpty] = useState(true);
 
   const themeConfig = {
     dark: {
@@ -42,6 +43,18 @@ export default function Home() {
 
   const current = themeConfig[theme];
 
+  const checkSessionStatus = async () => {
+    try {
+      const sessionId = getOrCreateSessionId();
+      import('@/lib/api').then(async ({ getSessionStatus }) => {
+        const data = await getSessionStatus(sessionId);
+        setIsEmpty(data.isEmpty);
+      });
+    } catch (err) {
+      console.error("Failed to check session status:", err);
+    }
+  };
+
   useEffect(() => {
     const handleCleanup = async () => {
       const sessionId = getOrCreateSessionId();
@@ -51,6 +64,9 @@ export default function Home() {
         console.error("Cleanup failed:", err);
       }
     };
+
+    // Initial status check
+    checkSessionStatus();
 
     // Perform Health Check
     import('@/lib/api').then(({ checkHealth }) => {
@@ -125,7 +141,7 @@ export default function Home() {
           </p>
         </header>
 
-        <ChatContainer theme={theme} />
+        <ChatContainer theme={theme} isUsingSampleData={isEmpty} />
 
         <footer className={`${theme === 'light' ? 'text-slate-400' : 'text-gray-500'} py-4 text-[10px] flex items-center justify-center space-x-4 shrink-0`}>
           <span className="hover:text-indigo-400 cursor-pointer transition-colors">Documentation</span>
@@ -139,6 +155,8 @@ export default function Home() {
       <DataManagementModal
         isOpen={isDataModalOpen}
         onClose={() => setIsDataModalOpen(false)}
+        isEmpty={isEmpty}
+        onStatusChange={checkSessionStatus}
       />
     </main>
   );
